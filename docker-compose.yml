@@ -20,7 +20,7 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    networks: [proxy_net, data_net]
+    networks: [proxy_net, data_net, metrics_net]
     read_only: true
     tmpfs:
       - /tmp
@@ -64,6 +64,41 @@ services:
         max-size: 10m
         max-file: "3"
 
+  mysql-exporter-setup:
+    image: mysql:8.4
+    restart: "no"
+    user: "0:0"
+    entrypoint: ["sh", "-c"]
+    command:
+        - >-
+          set -eu;
+          umask 077;
+          mysql --protocol=tcp --host=mysql --user=root
+          --password="$$MYSQL_ROOT_PASSWORD"
+          -e "CREATE USER IF NOT EXISTS 'metrics_exporter'@'%' IDENTIFIED BY '$$MYSQL_EXPORTER_PASSWORD';
+          ALTER USER 'metrics_exporter'@'%' IDENTIFIED BY '$$MYSQL_EXPORTER_PASSWORD';
+          GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'metrics_exporter'@'%';";
+          if [ -e /exporter-config/.my.cnf ]; then chmod 0600 /exporter-config/.my.cnf; fi;
+          printf '[client]\nhost=mysql\nport=3306\nuser=metrics_exporter\npassword=%s\n' "$$MYSQL_EXPORTER_PASSWORD" > /exporter-config/.my.cnf;
+          chmod 0444 /exporter-config/.my.cnf
+    environment:
+        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+        MYSQL_EXPORTER_PASSWORD: ${MYSQL_EXPORTER_PASSWORD:?Set MYSQL_EXPORTER_PASSWORD in .env}
+    depends_on:
+        mysql:
+          condition: service_healthy
+    networks: [data_net]
+    volumes:
+      - mysql_exporter_config:/exporter-config
+    security_opt:
+        - no-new-privileges:true
+    cap_drop: [ALL]
+    logging:
+        driver: json-file
+        options:
+          max-size: 10m
+          max-file: "3"
+
   phpmyadmin:
     image: phpmyadmin:5.2-apache
     restart: unless-stopped
@@ -96,7 +131,7 @@ services:
     depends_on:
       app:
         condition: service_healthy
-    networks: [proxy_net]
+    networks: [proxy_net, metrics_net]
     read_only: true
     tmpfs:
       - /var/cache/nginx:uid=100,gid=102,mode=0755
@@ -110,12 +145,142 @@ services:
         max-size: 10m
         max-file: "3"
 
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.4.2
+    restart: unless-stopped
+    command: ["--nginx.scrape-uri=http://nginx:8080/nginx_status"]
+    depends_on: [nginx]
+    networks: [metrics_net]
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  mysql-exporter:
+    image: prom/mysqld-exporter:v0.17.2
+    restart: unless-stopped
+    command:
+      - --config.my-cnf=/etc/mysql-exporter/.my.cnf
+    depends_on:
+      mysql-exporter-setup:
+        condition: service_completed_successfully
+    volumes:
+      - mysql_exporter_config:/etc/mysql-exporter:ro
+    networks: [data_net, metrics_net]
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.51.0
+    restart: unless-stopped
+    command:
+      - --docker_only=true
+      - --housekeeping_interval=30s
+      - --store_container_labels=false
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks: [metrics_net]
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    volumes:
+      - /:/host:ro
+    networks: [metrics_net]
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  prometheus:
+    image: prom/prometheus:v3.3.1
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks: [metrics_net]
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_AUTH_BASIC_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks: [metrics_net]
+    depends_on: [prometheus]
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
 volumes:
   mysql_data:
   uploads:
+  prometheus_data:
+  grafana_data:
+  mysql_exporter_config:
+
 networks:
   proxy_net:
     driver: bridge
   data_net:
     driver: bridge
     internal: true
+  metrics_net:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
