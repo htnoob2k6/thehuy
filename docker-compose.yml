@@ -108,11 +108,11 @@ services:
       PMA_ARBITRARY: 0
       UPLOAD_LIMIT: 32M
     ports:
-      - "127.0.0.1:${PHPMYADMIN_PORT:-8081}:80"
+      - "127.0.0.1:${PHPMYADMIN_PORT:-8082}:80"
     depends_on:
       mysql:
         condition: service_healthy
-    networks: [data_net]
+    networks: [data_net, admin_net]
     security_opt:
       - no-new-privileges:true
     logging:
@@ -315,6 +315,8 @@ networks:
   data_net:
     driver: bridge
     internal: true
+  admin_net:
+    driver: bridge
   metrics_net:
     driver: bridge
     internal: true

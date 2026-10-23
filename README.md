@@ -49,7 +49,7 @@ Lần đầu cần tải các image và khởi tạo MySQL; quá trình build Ng
 | --- | --- |
 | Website | https://localhost:8443 |
 | HTTP chuyển hướng HTTPS (chỉ localhost) | http://localhost:18080 → https://localhost:8443 |
-| phpMyAdmin (chỉ bind localhost) | http://localhost:8081 |
+| phpMyAdmin (chỉ bind localhost) | http://localhost:8082 |
 | Grafana (chỉ bind localhost) | http://localhost:3000 |
 
 Trình duyệt sẽ cảnh báo vì HTTPS dùng chứng chỉ tự ký. Tài khoản Grafana lấy từ `GRAFANA_ADMIN_USER` và `GRAFANA_ADMIN_PASSWORD` trong `.env`. Đăng nhập phpMyAdmin bằng `MYSQL_USER` / `MYSQL_PASSWORD` (hoặc root khi cần quản trị).
@@ -82,7 +82,7 @@ Tên `project` thay đổi theo `COMPOSE_PROJECT_NAME` trong `.env`. Có thể k
 
 - App, Nginx và Prometheus/Grafana/Loki chạy non-root theo image/container; app và Nginx dùng filesystem read-only, bỏ Linux capabilities và bật `no-new-privileges`.
 - Chỉ Nginx publish cổng website; MySQL chỉ nằm trên backend network `internal`. phpMyAdmin và Grafana chỉ bind `127.0.0.1`.
-- Network tách cho proxy, dữ liệu và monitoring; exporter dùng tài khoản MySQL riêng với quyền chỉ đọc cần thiết.
+- Network tách cho proxy, dữ liệu, quản trị cục bộ và monitoring; exporter dùng tài khoản MySQL riêng với quyền chỉ đọc cần thiết.
 - Mật khẩu/khóa cấu hình qua `.env` không commit; API quản trị bắt buộc API key và so sánh constant-time.
 - Nginx dùng HTTPS TLS 1.2/1.3, tự ký cho môi trường học tập, security headers, giới hạn kích thước upload và ẩn phiên bản.
 - API dùng prepared statements, xác thực/giới hạn dữ liệu đầu vào; giới hạn audio 30 MB và phần mở rộng/MIME được cho phép.
