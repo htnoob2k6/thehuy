@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Thư viện podcast, tập âm thanh và danh mục nghe thử.">
+  <title>Âm Thanh — Podcast Library</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="Âm Thanh - trang chủ">
+      <span class="brand-mark" aria-hidden="true">♫</span>
+      <span>âm thanh<span class="brand-dot">.</span></span>
+    </a>
+    <nav aria-label="Điều hướng chính">
+      <a href="#episodes">Khám phá</a>
+      <button class="admin-open" id="admin-open" type="button">Quản trị</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="live-dot"></span> KHÔNG GIAN ÂM THANH CỦA BẠN</p>
+        <h1>Chuyện hay,<br><span>nghe mỗi ngày.</span></h1>
+        <p class="hero-intro">Khám phá những cuộc trò chuyện và ý tưởng đáng nghe. Chọn một tập, nhấn phát và để câu chuyện bắt đầu.</p>
+        <a class="primary-button" href="#episodes">Khám phá thư viện <span aria-hidden="true">↘</span></a>
+      </div>
+      <div class="hero-art" aria-label="Minh họa sóng âm">
+        <div class="art-orbit orbit-one"></div>
+        <div class="art-orbit orbit-two"></div>
+        <div class="art-disc"><span>♫</span></div>
+        <div class="sound-wave" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <span class="art-caption">STORIES IN SOUND — VOL. 01</span>
+      </div>
+      <div class="hero-meta"><span>01 — THƯ VIỆN PODCAST</span><span>NGHE THEO CÁCH CỦA BẠN</span></div>
+    </section>
+
+    <section class="library section-wrap" id="episodes">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">TUYỂN CHỌN DÀNH CHO BẠN</p>
+          <h2>Thư viện <span>podcast</span></h2>
+        </div>
+        <p class="library-count" id="library-count">Đang tải thư viện...</p>
+      </div>
+      <div class="filters">
+        <label class="search-box">
+          <span class="sr-only">Tìm kiếm podcast</span>
+          <span aria-hidden="true">⌕</span>
+          <input id="search-input" type="search" placeholder="Tìm tập podcast..." maxlength="100">
+        </label>
+        <label class="category-select">
+          <span class="sr-only">Lọc theo danh mục</span>
+          <select id="category-filter"><option value="">Tất cả danh mục</option></select>
+        </label>
+      </div>
+      <div class="episode-grid" id="episode-grid" aria-live="polite"></div>
+      <p class="notice" id="library-message" role="status"></p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">♫</span><span>âm thanh<span class="brand-dot">.</span></span></a>
+    <p>Một góc nhỏ dành cho những điều đáng lắng nghe.</p>
+    <span>© 2026 PODCAST LIBRARY</span>
+  </footer>
+
+  <dialog id="admin-dialog" class="admin-dialog">
+    <div class="dialog-heading">
+      <div><p class="eyebrow">PODCAST STUDIO</p><h2>Quản lý thư viện</h2></div>
+      <button class="icon-button" id="admin-close" type="button" aria-label="Đóng">×</button>
+    </div>
+    <label class="form-field">Khóa quản trị
+      <input id="admin-key" type="password" autocomplete="current-password" placeholder="Nhập ADMIN_API_KEY" minlength="32">
+    </label>
+    <div class="admin-tabs">
+      <button class="tab-button active" type="button" data-tab="episode">Tập podcast</button>
+      <button class="tab-button" type="button" data-tab="category">Danh mục</button>
+    </div>
+    <form id="episode-form" class="admin-form">
+      <input id="episode-id" type="hidden">
+      <label class="form-field">Tên tập<input name="title" required minlength="2" maxlength="160" placeholder="Ví dụ: Những ý tưởng lớn bắt đầu từ đâu?"></label>
+      <div class="form-row">
+        <label class="form-field">Người dẫn<input name="host" maxlength="100" placeholder="Tên người dẫn"></label>
+        <label class="form-field">Danh mục<select name="categoryId" id="episode-category" required></select></label>
+      </div>
+      <label class="form-field">Mô tả<textarea name="description" maxlength="5000" rows="3" placeholder="Giới thiệu ngắn về tập podcast"></textarea></label>
+      <label class="form-field">Tệp âm thanh <span class="field-hint">(MP3, WAV, OGG, M4A, AAC, FLAC · tối đa 30 MB)</span>
+        <input name="audio" type="file" accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,audio/*">
+      </label>
+      <div class="form-actions"><button class="primary-button" type="submit" id="episode-submit">Lưu tập podcast</button><button class="text-button" type="reset">Xóa nội dung</button></div>
+    </form>
+    <form id="category-form" class="admin-form hidden">
+      <input id="category-id" type="hidden">
+      <label class="form-field">Tên danh mục<input name="name" required minlength="2" maxlength="60" placeholder="Ví dụ: Công nghệ"></label>
+      <label class="form-field">Mô tả<textarea name="description" maxlength="500" rows="2" placeholder="Giới thiệu danh mục"></textarea></label>
+      <div class="form-actions"><button class="primary-button" type="submit" id="category-submit">Thêm danh mục</button><button class="text-button" type="reset">Xóa nội dung</button></div>
+    </form>
+    <div class="admin-list-wrap">
+      <h3>Nội dung hiện có</h3>
+      <ul id="admin-list" class="admin-list"></ul>
+    </div>
+    <p id="admin-message" class="notice" role="status"></p>
+  </dialog>
+</body>
+</html>

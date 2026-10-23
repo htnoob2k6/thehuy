@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+uploads/*
+!uploads/.gitkeep
+mysql-data/
+grafana-data/
+prometheus-data/
+loki-data/
+app/node_modules/
+npm-debug.log*
+.DS_Store
+Thumbs.db

@@ -1,0 +1,10 @@
+.git
+.gitignore
+.env
+node_modules
+uploads
+mysql-data
+grafana-data
+prometheus-data
+loki-data
+**/*.log
