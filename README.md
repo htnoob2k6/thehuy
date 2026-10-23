@@ -50,7 +50,7 @@ Lần đầu cần tải các image và khởi tạo MySQL; quá trình build Ng
 | Website | https://localhost:8443 |
 | HTTP chuyển hướng HTTPS (chỉ localhost) | http://localhost:18080 → https://localhost:8443 |
 | phpMyAdmin (chỉ bind localhost) | http://localhost:8082 |
-| Grafana (chỉ bind localhost) | http://localhost:3000 |
+| Grafana (chỉ bind localhost) | http://localhost:3001 |
 
 Trình duyệt sẽ cảnh báo vì HTTPS dùng chứng chỉ tự ký. Tài khoản Grafana lấy từ `GRAFANA_ADMIN_USER` và `GRAFANA_ADMIN_PASSWORD` trong `.env`. Đăng nhập phpMyAdmin bằng `MYSQL_USER` / `MYSQL_PASSWORD` (hoặc root khi cần quản trị).
 Nếu đổi `APP_PORT`, cập nhật cổng đích HTTPS `8443` trong lệnh redirect ở `nginx/default.conf` cho khớp.
